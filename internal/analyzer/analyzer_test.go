@@ -548,6 +548,52 @@ func TestAnalyze_MinUnionTakesHighestVersion(t *testing.T) {
 	}
 }
 
+// TestAnalyze_MinUnionIncludesSpecifier: when the importer's specifier is too tight,
+// MinUnion must include both the resolved-version bump AND the specifier update so
+// the FIX summary is self-sufficient.
+func TestAnalyze_MinUnionIncludesSpecifier(t *testing.T) {
+	chains := [][]*graph.Node{
+		{importerNode("."), pkgNode("express", "4.16.0"), pkgNode("lodash", "4.17.10")},
+	}
+	// "~4.16.0" blocks express@4.17.1, so a specifier update is required.
+	lf := simpleLockfile(".", "express", "~4.16.0")
+	reg := &mockRegistry{
+		data: map[string]*registry.AbbrevMeta{
+			"express": {
+				Versions: map[string]*registry.PackageVersion{
+					"4.16.0": pkgVersion(map[string]string{"lodash": "~4.16.0"}),
+					"4.17.1": pkgVersion(map[string]string{"lodash": "^4.17.0"}),
+				},
+			},
+		},
+	}
+
+	rpt, err := analyzer.Analyze(chains, lf, "lodash", "4.17.10", "4.17.21", reg)
+	if err != nil {
+		t.Fatalf("Analyze error: %v", err)
+	}
+
+	var bumpEntry, specEntry *analyzer.FixAction
+	for i := range rpt.MinUnion {
+		fa := &rpt.MinUnion[i]
+		if fa.IsSpecifier {
+			specEntry = fa
+		} else {
+			bumpEntry = fa
+		}
+	}
+	if bumpEntry == nil {
+		t.Error("MinUnion missing version-bump entry for express")
+	} else if bumpEntry.ToVer != "4.17.1" {
+		t.Errorf("bump entry ToVer = %q, want %q", bumpEntry.ToVer, "4.17.1")
+	}
+	if specEntry == nil {
+		t.Error("MinUnion missing specifier entry for express — FIX summary would be incomplete")
+	} else if specEntry.Package != "express" {
+		t.Errorf("specifier entry Package = %q, want %q", specEntry.Package, "express")
+	}
+}
+
 // TestAnalyzeChain_EmptyChain: degenerate empty input, no crash.
 func TestAnalyzeChain_EmptyChain(t *testing.T) {
 	cr, err := analyzer.AnalyzeChain(nil, &lockfile.Lockfile{}, "pkg", "1.0.0", &mockRegistry{})

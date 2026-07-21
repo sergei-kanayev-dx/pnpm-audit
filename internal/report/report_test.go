@@ -136,8 +136,11 @@ func TestPrintHuman_BumpWithSpecifier(t *testing.T) {
 				},
 			},
 		},
+		// MinUnion includes both the version bump and the specifier update so that
+		// the FIX summary is self-sufficient (users need both changes).
 		MinUnion: []analyzer.FixAction{
 			{Package: "express", ToVer: "4.17.1"},
+			{Package: "express", ToVer: "^4.17.1", IsSpecifier: true},
 		},
 	}
 
@@ -146,10 +149,18 @@ func TestPrintHuman_BumpWithSpecifier(t *testing.T) {
 	out := buf.String()
 
 	if !strings.Contains(out, "bump express") {
-		t.Errorf("missing bump action in output:\n%s", out)
+		t.Errorf("missing per-chain bump action in output:\n%s", out)
 	}
+	// Per-chain output must show the specifier update.
 	if !strings.Contains(out, "specifier") {
-		t.Errorf("missing specifier update in output:\n%s", out)
+		t.Errorf("missing specifier update in per-chain output:\n%s", out)
+	}
+	// FIX summary must also show the specifier update (not just the version bump).
+	if !strings.Contains(out, "FIX:") {
+		t.Errorf("missing FIX line in output:\n%s", out)
+	}
+	if !strings.Contains(out, "package.json") {
+		t.Errorf("FIX summary missing package.json specifier instruction:\n%s", out)
 	}
 	if !strings.Contains(out, "^4.17.1") {
 		t.Errorf("missing new specifier value in output:\n%s", out)

@@ -314,11 +314,24 @@ func sortedVersionKeys(m map[string]*registry.PackageVersion) []string {
 
 // computeMinUnion builds the minimal union of package updates across all chains.
 // For each package, we take the highest required version (greedy approach).
+// Specifier updates (IsSpecifier=true) are collected separately and appended after
+// version-bump entries so the FIX summary is self-sufficient.
 func computeMinUnion(chains []*ChainResult) []FixAction {
-	best := make(map[string]string) // package → highest required version so far
+	best := make(map[string]string)     // package → highest required version so far
+	bestSpec := make(map[string]string) // package → ToVer of highest required specifier
 	for _, cr := range chains {
 		for _, fa := range cr.Actions {
 			if fa.IsSpecifier {
+				cur, exists := bestSpec[fa.Package]
+				if !exists {
+					bestSpec[fa.Package] = fa.ToVer
+					continue
+				}
+				cv, _ := semver.NewVersion(semverFromSpecifier(cur))
+				nv, _ := semver.NewVersion(semverFromSpecifier(fa.ToVer))
+				if cv != nil && nv != nil && nv.GreaterThan(cv) {
+					bestSpec[fa.Package] = fa.ToVer
+				}
 				continue
 			}
 			cur, exists := best[fa.Package]
@@ -334,12 +347,27 @@ func computeMinUnion(chains []*ChainResult) []FixAction {
 		}
 	}
 
-	result := make([]FixAction, 0, len(best))
+	result := make([]FixAction, 0, len(best)+len(bestSpec))
 	for pkg, ver := range best {
 		result = append(result, FixAction{Package: pkg, ToVer: ver})
 	}
+	for pkg, toVer := range bestSpec {
+		result = append(result, FixAction{Package: pkg, ToVer: toVer, IsSpecifier: true})
+	}
 	sort.Slice(result, func(i, j int) bool {
-		return result[i].Package < result[j].Package
+		if result[i].Package != result[j].Package {
+			return result[i].Package < result[j].Package
+		}
+		return !result[i].IsSpecifier // version bumps sort before specifier updates
 	})
 	return result
+}
+
+// semverFromSpecifier extracts the bare semver string from a specifier ToVer value.
+// Handles "^4.17.1" → "4.17.1" and "npm:pkg@^4.17.1" → "4.17.1".
+func semverFromSpecifier(s string) string {
+	if idx := strings.LastIndex(s, "@"); idx >= 0 {
+		s = s[idx+1:]
+	}
+	return strings.TrimLeft(s, "^~>=<")
 }

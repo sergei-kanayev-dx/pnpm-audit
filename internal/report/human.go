@@ -45,7 +45,7 @@ func PrintHuman(w io.Writer, r *analyzer.Report) {
 		if len(r.MinUnion) > 0 {
 			fmt.Fprintf(w, "FIX: update the following (resolves %d/%d chains):\n", fixable, total)
 			for _, a := range r.MinUnion {
-				fmt.Fprintf(w, "  - %s → %s\n", a.Package, a.ToVer)
+				printFixAction(w, a)
 			}
 		} else {
 			fmt.Fprintf(w, "FIX: no package updates needed — run `pnpm update %s` (resolves %d/%d chains)\n", r.VulnPkg, fixable, total)
@@ -53,7 +53,7 @@ func PrintHuman(w io.Writer, r *analyzer.Report) {
 	} else if fixable > 0 {
 		fmt.Fprintf(w, "PARTIAL FIX (%d/%d chains fixable):\n", fixable, total)
 		for _, a := range r.MinUnion {
-			fmt.Fprintf(w, "  - %s → %s\n", a.Package, a.ToVer)
+			printFixAction(w, a)
 		}
 	} else {
 		fmt.Fprintf(w, "NO FIX: no ancestor version admits the fixed version in any chain\n")
@@ -63,6 +63,14 @@ func PrintHuman(w io.Writer, r *analyzer.Report) {
 		fmt.Fprintf(w, "\nOVERRIDE (fallback — forced, not a natural upgrade):\n")
 		fmt.Fprintf(w, "  Add to package.json:\n")
 		fmt.Fprintf(w, "    \"pnpm\": { \"overrides\": { \"%s\": \"%s\" } }\n", r.VulnPkg, r.FixedVer)
+	}
+}
+
+func printFixAction(w io.Writer, a analyzer.FixAction) {
+	if a.IsSpecifier {
+		fmt.Fprintf(w, "  - update %s specifier in package.json to %s\n", a.Package, a.ToVer)
+	} else {
+		fmt.Fprintf(w, "  - %s → %s\n", a.Package, a.ToVer)
 	}
 }
 
