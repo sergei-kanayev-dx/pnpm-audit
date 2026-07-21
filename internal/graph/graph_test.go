@@ -127,6 +127,48 @@ func makePeerLF() *lockfile.Lockfile {
 	}
 }
 
+// makeAliasLF builds a lockfile with alias and local deps:
+//   "." → (npm:express alias) → express@4.18.2 → qs@6.11.0
+//   "." → (workspace:^) local-utils (skipped)
+func makeAliasLF() *lockfile.Lockfile {
+	return &lockfile.Lockfile{
+		Importers: map[string]*lockfile.Importer{
+			".": {
+				Dependencies: map[string]*lockfile.DepEntry{
+					"my-express": {Specifier: "npm:express@^4.18.0", Version: "express@4.18.2", IsAlias: true, AliasOf: "express"},
+					"local-utils": {Specifier: "workspace:^", Version: "link:packages/utils", IsLocal: true},
+				},
+			},
+		},
+		Snapshots: map[string]*lockfile.Snapshot{
+			"express@4.18.2": {Dependencies: map[string]string{"qs": "6.11.0"}},
+			"qs@6.11.0":      {},
+		},
+	}
+}
+
+// makePeerDepLF builds a lockfile with peer deps in snapshots:
+//   "." → foo@1.0.0; foo's snapshot has peerDependencies: {bar: 2.0.0}
+func makePeerDepLF() *lockfile.Lockfile {
+	return &lockfile.Lockfile{
+		Importers: map[string]*lockfile.Importer{
+			".": {
+				Dependencies: map[string]*lockfile.DepEntry{
+					"foo": {Version: "1.0.0"},
+					"bar": {Version: "2.0.0"},
+				},
+			},
+		},
+		Snapshots: map[string]*lockfile.Snapshot{
+			"foo@1.0.0": {
+				Dependencies:     map[string]string{},
+				PeerDependencies: map[string]string{"bar": "2.0.0"},
+			},
+			"bar@2.0.0": {},
+		},
+	}
+}
+
 var allOpts = graph.BuildOpts{IncludeDev: true, IncludeOptional: true}
 
 // ---- Build tests --------------------------------------------------------
@@ -401,5 +443,64 @@ func TestPathsToRootPeerSuffix(t *testing.T) {
 		if p[len(p)-1].DepPath != "loose-envify@1.4.0" {
 			t.Errorf("path does not end at loose-envify@1.4.0")
 		}
+	}
+}
+
+func TestBuildSkipsLocalDeps(t *testing.T) {
+	g := graph.Build(makeAliasLF(), graph.BuildOpts{})
+	// local-utils (workspace:^) must not create an edge from "." to anything local.
+	for _, child := range g.Children["."] {
+		if child.Name == "local-utils" {
+			t.Error("local-utils (workspace: dep) should be excluded from graph edges")
+		}
+	}
+}
+
+func TestBuildAliasEdge(t *testing.T) {
+	g := graph.Build(makeAliasLF(), graph.BuildOpts{})
+	// "my-express" alias should create edge from "." to "express@4.18.2".
+	found := false
+	for _, child := range g.Children["."] {
+		if child.DepPath == "express@4.18.2" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("alias dep: expected edge from '.' to 'express@4.18.2'")
+	}
+	// express@4.18.2 should have '.' as parent.
+	parents := g.Parents["express@4.18.2"]
+	if len(parents) != 1 || parents[0].DepPath != "." {
+		t.Errorf("express@4.18.2 parents = %v, want ['.']", parents)
+	}
+}
+
+func TestBuildIncludePeer(t *testing.T) {
+	// Without IncludePeer: foo@1.0.0 has no children (peerDeps excluded).
+	g := graph.Build(makePeerDepLF(), graph.BuildOpts{})
+	if len(g.Children["foo@1.0.0"]) != 0 {
+		t.Errorf("without IncludePeer, foo@1.0.0 should have 0 children, got %d", len(g.Children["foo@1.0.0"]))
+	}
+
+	// With IncludePeer: foo@1.0.0 should have bar@2.0.0 as child.
+	g2 := graph.Build(makePeerDepLF(), graph.BuildOpts{IncludePeer: true})
+	if len(g2.Children["foo@1.0.0"]) != 1 {
+		t.Errorf("with IncludePeer, foo@1.0.0 should have 1 child, got %d", len(g2.Children["foo@1.0.0"]))
+	}
+	if len(g2.Children["foo@1.0.0"]) > 0 && g2.Children["foo@1.0.0"][0].DepPath != "bar@2.0.0" {
+		t.Errorf("expected child bar@2.0.0, got %s", g2.Children["foo@1.0.0"][0].DepPath)
+	}
+}
+
+func TestFindVulnerableAlias(t *testing.T) {
+	// Alias dep: "my-express" → express@4.18.2. FindVulnerable("express", "4.18.2") should work.
+	g := graph.Build(makeAliasLF(), graph.BuildOpts{})
+	nodes, err := graph.FindVulnerable(g, "express", "4.18.2")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(nodes) != 1 || nodes[0].DepPath != "express@4.18.2" {
+		t.Errorf("nodes = %v, want [express@4.18.2]", nodes)
 	}
 }

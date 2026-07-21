@@ -3,6 +3,7 @@ package lockfile
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -63,6 +64,9 @@ func ParseV9(r io.Reader) (*Lockfile, error) {
 		if len(rs.OptionalDependencies) > 0 {
 			snap.OptionalDependencies = copyStrMap(rs.OptionalDependencies)
 		}
+		if len(rs.PeerDependencies) > 0 {
+			snap.PeerDependencies = copyStrMap(rs.PeerDependencies)
+		}
 		lf.Snapshots[key] = snap
 	}
 
@@ -75,7 +79,20 @@ func convertDepEntries(raw map[string]rawV9DepEntry) map[string]*DepEntry {
 	}
 	out := make(map[string]*DepEntry, len(raw))
 	for name, e := range raw {
-		out[name] = &DepEntry{Specifier: e.Specifier, Version: e.Version}
+		de := &DepEntry{Specifier: e.Specifier, Version: e.Version}
+		switch {
+		case strings.HasPrefix(e.Specifier, "workspace:") || strings.HasPrefix(e.Specifier, "link:"):
+			de.IsLocal = true
+		case strings.HasPrefix(e.Specifier, "npm:"):
+			de.IsAlias = true
+			rest := e.Specifier[4:] // e.g. "express@^4.18.0" or "@babel/name@^7.0.0"
+			if idx := strings.LastIndex(rest, "@"); idx > 0 {
+				de.AliasOf = rest[:idx]
+			} else {
+				de.AliasOf = rest // no version in specifier, use whole thing
+			}
+		}
+		out[name] = de
 	}
 	return out
 }
@@ -122,4 +139,5 @@ type rawV9Package struct {
 type rawV9Snapshot struct {
 	Dependencies         map[string]string `yaml:"dependencies"`
 	OptionalDependencies map[string]string `yaml:"optionalDependencies"`
+	PeerDependencies     map[string]string `yaml:"peerDependencies"`
 }

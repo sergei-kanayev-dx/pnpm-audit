@@ -206,6 +206,72 @@ func TestParseV9Monorepo(t *testing.T) {
 	}
 }
 
+func TestParseV9Aliases(t *testing.T) {
+	f := openFixture(t, "v9-aliases.yaml")
+	lf, err := lockfile.ParseV9(f)
+	if err != nil {
+		t.Fatalf("ParseV9: %v", err)
+	}
+
+	root, ok := lf.Importers["."]
+	if !ok {
+		t.Fatal(`Importers["."] missing`)
+	}
+
+	// npm: alias — IsAlias=true, AliasOf="express", Version is the real DepPath.
+	myExpress, ok := root.Dependencies["my-express"]
+	if !ok {
+		t.Fatal(`root.Dependencies["my-express"] missing`)
+	}
+	if !myExpress.IsAlias {
+		t.Error("my-express: IsAlias = false, want true")
+	}
+	if myExpress.AliasOf != "express" {
+		t.Errorf("my-express: AliasOf = %q, want %q", myExpress.AliasOf, "express")
+	}
+	if myExpress.IsLocal {
+		t.Error("my-express: IsLocal = true, want false")
+	}
+	if myExpress.Version != "express@4.18.2" {
+		t.Errorf("my-express: Version = %q, want %q", myExpress.Version, "express@4.18.2")
+	}
+
+	// workspace: specifier — IsLocal=true.
+	localUtils, ok := root.Dependencies["local-utils"]
+	if !ok {
+		t.Fatal(`root.Dependencies["local-utils"] missing`)
+	}
+	if !localUtils.IsLocal {
+		t.Error("local-utils: IsLocal = false, want true")
+	}
+	if localUtils.IsAlias {
+		t.Error("local-utils: IsAlias = true, want false")
+	}
+
+	// link: specifier — IsLocal=true.
+	linkedPkg, ok := root.Dependencies["linked-pkg"]
+	if !ok {
+		t.Fatal(`root.Dependencies["linked-pkg"] missing`)
+	}
+	if !linkedPkg.IsLocal {
+		t.Error("linked-pkg: IsLocal = false, want true")
+	}
+
+	// Normal dep — neither flag set.
+	qs, ok := root.Dependencies["qs"]
+	if !ok {
+		t.Fatal(`root.Dependencies["qs"] missing`)
+	}
+	if qs.IsLocal || qs.IsAlias {
+		t.Errorf("qs: IsLocal=%v IsAlias=%v, want both false", qs.IsLocal, qs.IsAlias)
+	}
+
+	// Alias node's snapshot: express@4.18.2 should exist.
+	if _, ok := lf.Snapshots["express@4.18.2"]; !ok {
+		t.Error(`Snapshots["express@4.18.2"] missing`)
+	}
+}
+
 func TestNewParser(t *testing.T) {
 	tests := []struct {
 		version string

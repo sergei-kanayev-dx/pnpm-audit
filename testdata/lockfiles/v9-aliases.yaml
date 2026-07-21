@@ -1,0 +1,40 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+  .:
+    dependencies:
+      my-express:
+        specifier: npm:express@^4.18.0
+        version: express@4.18.2
+      local-utils:
+        specifier: workspace:^
+        version: link:packages/utils
+      linked-pkg:
+        specifier: link:../external/lib
+        version: file:../external/lib
+      qs:
+        specifier: ^6.0.0
+        version: 6.11.0
+    devDependencies:
+      mocha:
+        specifier: ^10.0.0
+        version: 10.2.0
+
+packages:
+  express@4.18.2:
+    resolution: {integrity: sha512-abc}
+  qs@6.11.0:
+    resolution: {integrity: sha512-def}
+  mocha@10.2.0:
+    resolution: {integrity: sha512-ghi}
+
+snapshots:
+  express@4.18.2:
+    dependencies:
+      qs: 6.11.0
+  qs@6.11.0: {}
+  mocha@10.2.0: {}

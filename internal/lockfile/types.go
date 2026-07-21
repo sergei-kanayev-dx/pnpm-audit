@@ -32,7 +32,10 @@ type Importer struct {
 // DepEntry is a resolved dependency entry in an importer.
 type DepEntry struct {
 	Specifier string // range from package.json, e.g. "^4.18.0"
-	Version   string // resolved DepPath key, e.g. "4.18.2"
+	Version   string // resolved DepPath key or version; alias deps use "pkgname@version" format
+	IsLocal   bool   // true when specifier is workspace: or link: (local, not registry-resolvable)
+	IsAlias   bool   // true when specifier is npm:pkgname@range
+	AliasOf   string // real package name when IsAlias is true, e.g. "express" for npm:express@^4
 }
 
 // Package holds immutable per-package metadata from the packages section.
@@ -46,4 +49,5 @@ type Package struct {
 type Snapshot struct {
 	Dependencies         map[string]string // name → resolved version string
 	OptionalDependencies map[string]string // name → resolved version string
+	PeerDependencies     map[string]string // name → resolved version string
 }

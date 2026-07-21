@@ -138,9 +138,18 @@ func main() {
 	// Build registry client.
 	reg := registry.NewClient(*registryURL)
 	if *offline {
-		// Offline mode: do not make network requests; only use on-disk data.
-		// The registry client will fall through to the offline reader on error.
-		_ = reg
+		reg.Offline = true
+	}
+
+	// Verify fixedVersion exists in registry before running analysis.
+	vulnMeta, err := reg.FetchAbbrevMeta(vulnName)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: cannot fetch metadata for %s: %v\n", vulnName, err)
+		os.Exit(1)
+	}
+	if _, exists := vulnMeta.Versions[fixedVersion]; !exists {
+		fmt.Fprintf(os.Stderr, "error: %s@%s is not published in the registry\n", vulnName, fixedVersion)
+		os.Exit(1)
 	}
 
 	// Run the bottom-up fix analysis.

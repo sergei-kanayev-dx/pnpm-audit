@@ -225,3 +225,83 @@ func TestFetchOffline_MissingFile(t *testing.T) {
 		t.Error("expected error for missing package.json")
 	}
 }
+
+func TestFetchAbbrevMeta_OfflineMode(t *testing.T) {
+	tmpDir := t.TempDir()
+	// Populate node_modules/.pnpm with two versions of "express".
+	for _, ver := range []string{"4.16.0", "4.18.2"} {
+		pkgDir := filepath.Join(tmpDir, "node_modules", ".pnpm", "express@"+ver, "node_modules", "express")
+		if err := os.MkdirAll(pkgDir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		pv := registry.PackageVersion{
+			Dependencies: map[string]string{"lodash": "^4.17.0"},
+		}
+		f, err := os.Create(filepath.Join(pkgDir, "package.json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := json.NewEncoder(f).Encode(pv); err != nil {
+			t.Fatal(err)
+		}
+		f.Close()
+	}
+
+	c := registry.NewClient("http://unreachable-host.invalid")
+	c.NodeModDir = tmpDir
+	c.Offline = true
+
+	meta, err := c.FetchAbbrevMeta("express")
+	if err != nil {
+		t.Fatalf("FetchAbbrevMeta offline: %v", err)
+	}
+	if meta.Name != "express" {
+		t.Errorf("name = %q, want express", meta.Name)
+	}
+	if len(meta.Versions) != 2 {
+		t.Errorf("len(versions) = %d, want 2", len(meta.Versions))
+	}
+	if _, ok := meta.Versions["4.18.2"]; !ok {
+		t.Error("version 4.18.2 missing")
+	}
+}
+
+func TestFetchAbbrevMeta_OfflineMode_CachesResult(t *testing.T) {
+	tmpDir := t.TempDir()
+	pkgDir := filepath.Join(tmpDir, "node_modules", ".pnpm", "lodash@4.17.21", "node_modules", "lodash")
+	if err := os.MkdirAll(pkgDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	pv := registry.PackageVersion{}
+	f, err := os.Create(filepath.Join(pkgDir, "package.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.NewEncoder(f).Encode(pv); err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+
+	c := registry.NewClient("http://unreachable-host.invalid")
+	c.NodeModDir = tmpDir
+	c.Offline = true
+
+	// Two calls — second should hit cache (no error even if files gone).
+	if _, err := c.FetchAbbrevMeta("lodash"); err != nil {
+		t.Fatalf("first call: %v", err)
+	}
+	if _, err := c.FetchAbbrevMeta("lodash"); err != nil {
+		t.Fatalf("second call (should be cached): %v", err)
+	}
+}
+
+func TestFetchAbbrevMeta_OfflineMode_NotFound(t *testing.T) {
+	c := registry.NewClient("http://unreachable-host.invalid")
+	c.NodeModDir = t.TempDir()
+	c.Offline = true
+
+	_, err := c.FetchAbbrevMeta("nonexistent-package")
+	if err == nil {
+		t.Error("expected error for package not in node_modules/.pnpm")
+	}
+}

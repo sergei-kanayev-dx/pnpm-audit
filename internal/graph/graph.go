@@ -19,6 +19,7 @@ type Node struct {
 type BuildOpts struct {
 	IncludeDev      bool // include importer devDependencies edges
 	IncludeOptional bool // include optional dependency edges
+	IncludePeer     bool // include snapshot peerDependencies edges
 }
 
 // Graph holds the full forward+reverse dependency graph.
@@ -98,7 +99,18 @@ func Build(lf *lockfile.Lockfile, opts BuildOpts) *Graph {
 	for path, imp := range lf.Importers {
 		addDeps := func(deps map[string]*lockfile.DepEntry) {
 			for depName, entry := range deps {
-				addEdge(path, depName+"@"+entry.Version)
+				if entry.IsLocal {
+					// workspace: and link: deps are local packages; skip registry edge.
+					continue
+				}
+				var childDP string
+				if entry.IsAlias {
+					// npm: alias: entry.Version is the real package's DepPath ("pkgname@version").
+					childDP = entry.Version
+				} else {
+					childDP = depName + "@" + entry.Version
+				}
+				addEdge(path, childDP)
 			}
 		}
 		addDeps(imp.Dependencies)
@@ -117,6 +129,11 @@ func Build(lf *lockfile.Lockfile, opts BuildOpts) *Graph {
 		}
 		if opts.IncludeOptional {
 			for childName, childVer := range snap.OptionalDependencies {
+				addEdge(depPath, childName+"@"+childVer)
+			}
+		}
+		if opts.IncludePeer {
+			for childName, childVer := range snap.PeerDependencies {
 				addEdge(depPath, childName+"@"+childVer)
 			}
 		}

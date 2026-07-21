@@ -153,6 +153,16 @@ func AnalyzeChain(chain []*graph.Node, lf *lockfile.Lockfile, vulnPkg, fixedVers
 		if parent.IsRoot {
 			// Look up the importer's declared specifier for this node.
 			if de := importerDepEntry(lf, parent.DepPath, node.Name); de != nil {
+				if de.IsLocal {
+					// workspace: or link: dep — cannot upgrade via registry.
+					result.Verdict = VerdictDeadEnd
+					result.BlockedBy = node.Name
+					result.BlockReason = fmt.Sprintf(
+						"%s is a workspace/local package in %s; use pnpm.overrides instead",
+						node.Name, parent.DepPath,
+					)
+					return result, nil
+				}
 				admits, _ := npmsemver.Satisfies(newVer, de.Specifier)
 				if !admits {
 					// Importer's specifier must also be widened.
@@ -226,20 +236,24 @@ func getDeclaredRange(v *registry.PackageVersion, childName string) string {
 }
 
 // importerDepEntry returns the DepEntry the importer declares for depName,
-// searching across all dependency groups.
+// searching across all dependency groups. Also matches alias entries where
+// AliasOf equals depName (e.g. "my-express: npm:express@^4" matches "express").
 func importerDepEntry(lf *lockfile.Lockfile, importerPath, depName string) *lockfile.DepEntry {
 	imp, ok := lf.Importers[importerPath]
 	if !ok {
 		return nil
 	}
-	if de, ok := imp.Dependencies[depName]; ok {
-		return de
-	}
-	if de, ok := imp.DevDependencies[depName]; ok {
-		return de
-	}
-	if de, ok := imp.OptionalDependencies[depName]; ok {
-		return de
+	for _, deps := range []map[string]*lockfile.DepEntry{
+		imp.Dependencies, imp.DevDependencies, imp.OptionalDependencies,
+	} {
+		if de, ok := deps[depName]; ok {
+			return de
+		}
+		for _, de := range deps {
+			if de.IsAlias && de.AliasOf == depName {
+				return de
+			}
+		}
 	}
 	return nil
 }

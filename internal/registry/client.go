@@ -30,6 +30,8 @@ type Client struct {
 	cache      map[string]*AbbrevMeta
 	// NodeModDir is the project root used for offline fallback (default ".").
 	NodeModDir string
+	// Offline skips network requests and reads from node_modules/.pnpm instead.
+	Offline bool
 }
 
 // NewClient creates a Client targeting the given registry base URL.
@@ -45,9 +47,19 @@ func NewClient(baseURL string) *Client {
 // FetchAbbrevMeta returns abbreviated metadata for pkg.
 // Results are cached in memory; subsequent calls for the same package return
 // the cached value without a network request.
+// When c.Offline is true, reads from node_modules/.pnpm instead of the network.
 func (c *Client) FetchAbbrevMeta(pkg string) (*AbbrevMeta, error) {
 	if m, ok := c.cache[pkg]; ok {
 		return m, nil
+	}
+
+	if c.Offline {
+		meta, err := c.buildOfflineMeta(pkg)
+		if err != nil {
+			return nil, err
+		}
+		c.cache[pkg] = meta
+		return meta, nil
 	}
 
 	url := c.baseURL + "/" + encodePkgPath(pkg)

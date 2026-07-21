@@ -575,3 +575,106 @@ func TestAnalyzeChain_NoDeclaredRange(t *testing.T) {
 		t.Errorf("verdict = %v, want VerdictNoBumpNeeded", cr.Verdict)
 	}
 }
+
+// simpleLockfileWithLocal creates a lockfile where the importer's dep entry is a workspace dep.
+func simpleLockfileWithLocal(importerPath, directDepName string) *lockfile.Lockfile {
+	return &lockfile.Lockfile{
+		Importers: map[string]*lockfile.Importer{
+			importerPath: {
+				Dependencies: map[string]*lockfile.DepEntry{
+					directDepName: {
+						Specifier: "workspace:^",
+						Version:   "link:packages/" + directDepName,
+						IsLocal:   true,
+					},
+				},
+			},
+		},
+	}
+}
+
+// simpleLockfileWithAlias creates a lockfile where an alias (npm:realPkg@range) maps to realPkg.
+func simpleLockfileWithAlias(importerPath, aliasName, realPkg, specifierRange string) *lockfile.Lockfile {
+	return &lockfile.Lockfile{
+		Importers: map[string]*lockfile.Importer{
+			importerPath: {
+				Dependencies: map[string]*lockfile.DepEntry{
+					aliasName: {
+						Specifier: "npm:" + realPkg + "@" + specifierRange,
+						Version:   realPkg + "@4.17.1",
+						IsAlias:   true,
+						AliasOf:   realPkg,
+					},
+				},
+			},
+		},
+	}
+}
+
+// TestAnalyzeChain_WorkspaceDep: when the importer's specifier for a direct parent is
+// workspace:, the chain cannot be fixed via registry → VerdictDeadEnd.
+func TestAnalyzeChain_WorkspaceDep(t *testing.T) {
+	chain := []*graph.Node{
+		importerNode("."),
+		pkgNode("local-utils", "1.0.0"),
+		pkgNode("vuln", "1.0.0"),
+	}
+	lf := simpleLockfileWithLocal(".", "local-utils")
+	reg := &mockRegistry{
+		data: map[string]*registry.AbbrevMeta{
+			"local-utils": {
+				Name: "local-utils",
+				Versions: map[string]*registry.PackageVersion{
+					"1.0.0": pkgVersion(map[string]string{"vuln": "^1.0.0"}),
+					"2.0.0": pkgVersion(map[string]string{"vuln": "^2.0.0"}),
+				},
+			},
+		},
+	}
+
+	cr, err := analyzer.AnalyzeChain(chain, lf, "vuln", "2.0.0", reg)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cr.Verdict != analyzer.VerdictDeadEnd {
+		t.Errorf("verdict = %v, want VerdictDeadEnd (workspace dep can't be registry-fixed)", cr.Verdict)
+	}
+	if cr.BlockedBy != "local-utils" {
+		t.Errorf("BlockedBy = %q, want %q", cr.BlockedBy, "local-utils")
+	}
+}
+
+// TestAnalyzeChain_AliasDep: when the importer uses npm:express@range as alias "my-express",
+// importerDepEntry finds the specifier via AliasOf match.
+func TestAnalyzeChain_AliasDep(t *testing.T) {
+	chain := []*graph.Node{
+		importerNode("."),
+		pkgNode("express", "4.16.0"),
+		pkgNode("lodash", "4.17.10"),
+	}
+	// Importer has alias "my-express" → npm:express@^4.16.0
+	lf := simpleLockfileWithAlias(".", "my-express", "express", "^4.16.0")
+	reg := &mockRegistry{
+		data: map[string]*registry.AbbrevMeta{
+			"express": {
+				Name: "express",
+				Versions: map[string]*registry.PackageVersion{
+					"4.16.0": pkgVersion(map[string]string{"lodash": "~4.16.0"}),  // blocks 4.17.21
+					"4.17.1": pkgVersion(map[string]string{"lodash": "^4.17.0"}),  // admits 4.17.21
+				},
+			},
+		},
+	}
+
+	cr, err := analyzer.AnalyzeChain(chain, lf, "lodash", "4.17.21", reg)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Should resolve by bumping express; alias lookup should find the entry.
+	if cr.Verdict != analyzer.VerdictBump {
+		t.Errorf("verdict = %v, want VerdictBump", cr.Verdict)
+	}
+	if len(cr.Actions) == 0 || cr.Actions[0].Package != "express" {
+		t.Errorf("expected action for express, got %+v", cr.Actions)
+	}
+}

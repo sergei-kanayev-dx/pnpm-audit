@@ -131,14 +131,14 @@ Build a Go CLI tool that, given a vulnerable transitive npm package and a fixed 
 - Modify: `internal/analyzer/analyzer.go`
 - Create: `testdata/lockfiles/v9-aliases.yaml`
 
-- [ ] handle `workspace:` and `link:` specifiers in importer deps: skip registry lookup, treat as always-satisfiable local (not fixable via registry upgrade)
-- [ ] handle aliased deps (`npm:other@range`): parse the `npm:` prefix, resolve registry lookups against the aliased package name
-- [ ] handle dev/optional/peer edge inclusion: honor BuildOpts.IncludeDev, IncludeOptional, IncludePeer flags from graph.Build
-- [ ] verify peer-suffixed DepPath multi-snapshot handling: graph builds correctly, path enumeration treats each DepPath as a distinct node, but `FindVulnerable` matches all of them
-- [ ] handle `fixedVersion` not published: registry 404 on version → clear error message, exit code 1
-- [ ] handle registry unreachable with `--offline` flag: fall through to offline reader gracefully; error if offline reader also fails
-- [ ] add fixture testdata/lockfiles/v9-aliases.yaml; extend existing tests to cover the above cases
-- [ ] run `go test ./...` — must pass
+- [x] handle `workspace:` and `link:` specifiers in importer deps: skip registry lookup, treat as always-satisfiable local (not fixable via registry upgrade)
+- [x] handle aliased deps (`npm:other@range`): parse the `npm:` prefix, resolve registry lookups against the aliased package name
+- [x] handle dev/optional/peer edge inclusion: honor BuildOpts.IncludeDev, IncludeOptional, IncludePeer flags from graph.Build
+- [x] verify peer-suffixed DepPath multi-snapshot handling: graph builds correctly, path enumeration treats each DepPath as a distinct node, but `FindVulnerable` matches all of them
+- [x] handle `fixedVersion` not published: registry 404 on version → clear error message, exit code 1
+- [x] handle registry unreachable with `--offline` flag: fall through to offline reader gracefully; error if offline reader also fails
+- [x] add fixture testdata/lockfiles/v9-aliases.yaml; extend existing tests to cover the above cases
+- [x] run `go test ./...` — must pass
 
 ### Task 8: End-to-end golden tests, README, polish
 
