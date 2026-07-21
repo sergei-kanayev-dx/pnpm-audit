@@ -507,16 +507,22 @@ func TestAnalyze_MinUnionTakesHighestVersion(t *testing.T) {
 		},
 	}
 
-	// Chain 1 fixes lodash@2.0.0, chain 2 fixes other@2.0.0.
-	report, err := analyzer.Analyze(chains, lf, "lodash", "1.0.0", "2.0.0", reg)
+	// Chain 1 needs express@4.17.1 (first version admitting lodash@2.0.0).
+	// Chain 2 needs express@4.18.0 (first version admitting other@2.0.0).
+	// MinUnion must pick express@4.18.0 — the higher of the two requirements.
+	rpt, err := analyzer.Analyze(chains, lf, "lodash", "1.0.0", "2.0.0", reg)
 	if err != nil {
-		// Chain 2 is for "other" package but the analyzer looks for vulnPkg="lodash" as child.
-		// Chain 2's direct parent is express@4.16.0 and child is other@1.0.0 (not lodash).
-		// getDeclaredRange for "lodash" (vulnPkg) vs "other" as child — let's just check we can proceed.
-		t.Logf("Analyze error (may be expected for mixed-child test): %v", err)
-		return
+		t.Fatalf("Analyze error: %v", err)
 	}
-	_ = report
+	if len(rpt.MinUnion) != 1 {
+		t.Fatalf("MinUnion length = %d, want 1; MinUnion = %v", len(rpt.MinUnion), rpt.MinUnion)
+	}
+	if rpt.MinUnion[0].Package != "express" {
+		t.Errorf("MinUnion[0].Package = %q, want %q", rpt.MinUnion[0].Package, "express")
+	}
+	if rpt.MinUnion[0].ToVer != "4.18.0" {
+		t.Errorf("MinUnion[0].ToVer = %q, want %q", rpt.MinUnion[0].ToVer, "4.18.0")
+	}
 }
 
 // TestAnalyzeChain_EmptyChain: degenerate empty input, no crash.

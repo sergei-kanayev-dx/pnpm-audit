@@ -46,7 +46,7 @@ func TestPrintHuman_NoBumpNeeded(t *testing.T) {
 		{"chain line", "Chain 1:"},
 		{"chain path", ". > express@4.16.0 > lodash@4.17.10"},
 		{"satisfied message", "already satisfied"},
-		{"fix line", "FIX:"},
+		{"fix line", "FIX: no package updates needed"},
 	}
 	for _, c := range checks {
 		if !strings.Contains(out, c.want) {
@@ -323,5 +323,16 @@ func TestPrintJSON_Empty(t *testing.T) {
 
 	if !json.Valid(buf.Bytes()) {
 		t.Errorf("output is not valid JSON:\n%s", buf.String())
+	}
+
+	// Verify required fields are present even when zero-valued.
+	var decoded map[string]interface{}
+	if err := json.Unmarshal(buf.Bytes(), &decoded); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	for _, field := range []string{"AllFixable", "NeedsOverride", "Chains", "MinUnion"} {
+		if _, ok := decoded[field]; !ok {
+			t.Errorf("field %q missing from JSON output", field)
+		}
 	}
 }

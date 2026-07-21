@@ -52,10 +52,6 @@ func TestParseV9Simple(t *testing.T) {
 		t.Error(`root.DevDependencies["lodash"] missing`)
 	}
 
-	if _, ok := lf.Packages["express@4.18.2"]; !ok {
-		t.Error(`Packages["express@4.18.2"] missing`)
-	}
-
 	expSnap, ok := lf.Snapshots["express@4.18.2"]
 	if !ok {
 		t.Fatal(`Snapshots["express@4.18.2"] missing`)
@@ -97,10 +93,6 @@ func TestParseV9Scoped(t *testing.T) {
 
 	if _, ok := root.DevDependencies["@types/node"]; !ok {
 		t.Error(`root.DevDependencies["@types/node"] missing`)
-	}
-
-	if _, ok := lf.Packages["@babel/core@7.22.5"]; !ok {
-		t.Error(`Packages["@babel/core@7.22.5"] missing`)
 	}
 
 	coreSnap, ok := lf.Snapshots["@babel/core@7.22.5"]

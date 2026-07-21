@@ -37,7 +37,6 @@ func ParseV9(r io.Reader) (*Lockfile, error) {
 			ExcludeLinksFromLockfile: raw.Settings.ExcludeLinksFromLockfile,
 		},
 		Importers: make(map[string]*Importer, len(raw.Importers)),
-		Packages:  make(map[string]*Package, len(raw.Packages)),
 		Snapshots: make(map[string]*Snapshot, len(raw.Snapshots)),
 	}
 
@@ -46,13 +45,6 @@ func ParseV9(r io.Reader) (*Lockfile, error) {
 			Dependencies:         convertDepEntries(ri.Dependencies),
 			DevDependencies:      convertDepEntries(ri.DevDependencies),
 			OptionalDependencies: convertDepEntries(ri.OptionalDependencies),
-		}
-	}
-
-	for key, rp := range raw.Packages {
-		lf.Packages[key] = &Package{
-			Resolution: rp.Resolution,
-			Engines:    rp.Engines,
 		}
 	}
 
@@ -111,7 +103,6 @@ type rawV9 struct {
 	LockfileVersion string                   `yaml:"lockfileVersion"`
 	Settings        rawV9Settings            `yaml:"settings"`
 	Importers       map[string]rawV9Importer `yaml:"importers"`
-	Packages        map[string]rawV9Package  `yaml:"packages"`
 	Snapshots       map[string]rawV9Snapshot `yaml:"snapshots"`
 }
 
@@ -129,11 +120,6 @@ type rawV9Importer struct {
 type rawV9DepEntry struct {
 	Specifier string `yaml:"specifier"`
 	Version   string `yaml:"version"`
-}
-
-type rawV9Package struct {
-	Resolution map[string]string `yaml:"resolution"`
-	Engines    map[string]string `yaml:"engines"`
 }
 
 type rawV9Snapshot struct {

@@ -12,7 +12,6 @@ type Lockfile struct {
 	LockfileVersion string
 	Settings        Settings
 	Importers       map[string]*Importer // key: workspace path ("." for root)
-	Packages        map[string]*Package  // key: "name@version"
 	Snapshots       map[string]*Snapshot // key: DepPath (may include peer suffix)
 }
 
@@ -36,12 +35,6 @@ type DepEntry struct {
 	IsLocal   bool   // true when specifier is workspace: or link: (local, not registry-resolvable)
 	IsAlias   bool   // true when specifier is npm:pkgname@range
 	AliasOf   string // real package name when IsAlias is true, e.g. "express" for npm:express@^4
-}
-
-// Package holds immutable per-package metadata from the packages section.
-type Package struct {
-	Resolution map[string]string
-	Engines    map[string]string
 }
 
 // Snapshot is a resolved dependency instance from the snapshots section.

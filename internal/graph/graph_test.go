@@ -322,18 +322,6 @@ func TestFindVulnerablePeerMultipleNodes(t *testing.T) {
 
 // ---- PathsToRoot tests --------------------------------------------------
 
-func depPaths(paths [][]*graph.Node) [][]string {
-	out := make([][]string, len(paths))
-	for i, p := range paths {
-		out[i] = make([]string, len(p))
-		for j, n := range p {
-			out[j] = append(out[j][:0:0], n.DepPath) // reuse storage via overwrite is safe
-			out[i][j] = n.DepPath
-		}
-	}
-	return out
-}
-
 func TestPathsToRootSingleParent(t *testing.T) {
 	g := graph.Build(makeSimpleLF(), allOpts)
 	node := g.Nodes["lodash@4.17.10"]

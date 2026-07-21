@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -106,16 +105,7 @@ func main() {
 	// Locate the vulnerable package.
 	vulnNodes, err := graph.FindVulnerable(g, vulnName, vulnVersion)
 	if err != nil {
-		var notFound *graph.ErrPkgNotFound
-		var wrongVer *graph.ErrPkgWrongVersion
-		switch {
-		case errors.As(err, &notFound):
-			fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		case errors.As(err, &wrongVer):
-			fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		default:
-			fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		}
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(3)
 	}
 

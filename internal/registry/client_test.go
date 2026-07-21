@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/user/pnpm-vuln-fixer/internal/registry"
@@ -123,8 +124,8 @@ func TestFetchAbbrevMeta_AcceptHeader(t *testing.T) {
 	if _, err := c.FetchAbbrevMeta("lodash"); err != nil {
 		t.Fatal(err)
 	}
-	if gotAccept == "" {
-		t.Error("Accept header not sent")
+	if !strings.Contains(gotAccept, "application/vnd.npm.install-v1+json") {
+		t.Errorf("Accept header %q missing abbreviated-metadata content type", gotAccept)
 	}
 }
 
@@ -286,12 +287,16 @@ func TestFetchAbbrevMeta_OfflineMode_CachesResult(t *testing.T) {
 	c.NodeModDir = tmpDir
 	c.Offline = true
 
-	// Two calls — second should hit cache (no error even if files gone).
 	if _, err := c.FetchAbbrevMeta("lodash"); err != nil {
 		t.Fatalf("first call: %v", err)
 	}
+
+	// Remove the on-disk tree; the second call must still succeed from cache.
+	if err := os.RemoveAll(filepath.Join(tmpDir, "node_modules")); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := c.FetchAbbrevMeta("lodash"); err != nil {
-		t.Fatalf("second call (should be cached): %v", err)
+		t.Fatalf("second call (should hit cache, not disk): %v", err)
 	}
 }
 

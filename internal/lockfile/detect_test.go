@@ -3,6 +3,7 @@ package lockfile_test
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/user/pnpm-vuln-fixer/internal/lockfile"
@@ -61,7 +62,7 @@ func TestDetectVersion(t *testing.T) {
 				if err == nil {
 					t.Fatalf("expected error containing %q, got nil", tc.wantErr)
 				}
-				if !containsStr(err.Error(), tc.wantErr) {
+				if !strings.Contains(err.Error(), tc.wantErr) {
 					t.Fatalf("error %q does not contain %q", err.Error(), tc.wantErr)
 				}
 				return
@@ -95,13 +96,3 @@ func TestDetectVersionRealFixture(t *testing.T) {
 	}
 }
 
-func containsStr(s, sub string) bool {
-	return len(s) >= len(sub) && (s == sub || len(sub) == 0 || func() bool {
-		for i := 0; i+len(sub) <= len(s); i++ {
-			if s[i:i+len(sub)] == sub {
-				return true
-			}
-		}
-		return false
-	}())
-}

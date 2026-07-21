@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 )
 
 // PackageVersion holds the per-version dependency metadata from npm abbreviated metadata.
@@ -37,7 +38,7 @@ type Client struct {
 // NewClient creates a Client targeting the given registry base URL.
 func NewClient(baseURL string) *Client {
 	return &Client{
-		httpClient: &http.Client{},
+		httpClient: &http.Client{Timeout: 30 * time.Second},
 		baseURL:    strings.TrimRight(baseURL, "/"),
 		cache:      make(map[string]*AbbrevMeta),
 		NodeModDir: ".",

@@ -181,14 +181,8 @@ func AnalyzeChain(chain []*graph.Node, lf *lockfile.Lockfile, vulnPkg, fixedVers
 		targetChildVer = newVer
 	}
 
-	// Fell through the loop (len(chain)==2 already returned above; this path
-	// is reached only when i reaches 0, i.e. the importer is chain[0] and
-	// chain[1] is both the only intermediate node and needs a bump).
-	if len(result.Actions) == 0 {
-		result.Verdict = VerdictNoBumpNeeded
-	} else {
-		result.Verdict = VerdictBump
-	}
+	// Unreachable: for all valid chains (len>=3), the loop hits parent.IsRoot==true
+	// at i=1 and returns. This return is kept only to satisfy the compiler.
 	return result, nil
 }
 
@@ -208,7 +202,7 @@ func Analyze(chains [][]*graph.Node, lf *lockfile.Lockfile, vulnPkg, vulnVer, fi
 		report.Chains = append(report.Chains, cr)
 	}
 
-	report.AllFixable = true
+	report.AllFixable = len(report.Chains) > 0
 	for _, cr := range report.Chains {
 		if cr.Verdict == VerdictDeadEnd {
 			report.AllFixable = false
