@@ -98,15 +98,15 @@ Build a Go CLI tool that, given a vulnerable transitive npm package and a fixed 
 - Create: `internal/analyzer/analyzer.go`
 - Create: `internal/analyzer/analyzer_test.go`
 
-- [ ] define result types: `ChainResult`, `NodeVerdict` (fixable/dead-end/no-bump-needed), `FixAction` (which package to update, to what version)
-- [ ] implement `AnalyzeChain(chain []*graph.Node, vuln, fixedVersion string, reg registry.Client, semver npmsemver package) ChainResult` bottom-up:
+- [x] define result types: `ChainResult`, `NodeVerdict` (fixable/dead-end/no-bump-needed), `FixAction` (which package to update, to what version)
+- [x] implement `AnalyzeChain(chain []*graph.Node, vuln, fixedVersion string, reg registry.Client, semver npmsemver package) ChainResult` bottom-up:
   - leaf edge: fetch parent's declared range for vuln; if satisfies(fixedVersion, range) → no-bump; else find minimal parent version P' where range admits fixedVersion
   - propagate upward: for each ancestor, check if its range admits P'; if not, find minimal ancestor version admitting P'
   - termination: reached importer → record FixAction; or dead end → record blocking package + reason
-- [ ] implement direct-dep short-circuit: if vuln is a direct dep of importer, fix is updating that specifier
-- [ ] implement `Analyze(g *graph.Graph, chains [][]*graph.Node, vuln, fixedVersion string, ...) *Report` combining per-chain results, computing minimal union of needed updates, flagging chains with no fix for overrides fallback
-- [ ] write golden tests using fixture lockfile + mock registry for: already-satisfiable, single ancestor bump, cascade to root, dead end, direct-dep, multi-chain partial fix
-- [ ] run `go test ./...` — must pass
+- [x] implement direct-dep short-circuit: if vuln is a direct dep of importer, fix is updating that specifier
+- [x] implement `Analyze(g *graph.Graph, chains [][]*graph.Node, vuln, fixedVersion string, ...) *Report` combining per-chain results, computing minimal union of needed updates, flagging chains with no fix for overrides fallback
+- [x] write golden tests using fixture lockfile + mock registry for: already-satisfiable, single ancestor bump, cascade to root, dead end, direct-dep, multi-chain partial fix
+- [x] run `go test ./...` — must pass
 
 ### Task 6: Reporting — human-readable and JSON output
 
