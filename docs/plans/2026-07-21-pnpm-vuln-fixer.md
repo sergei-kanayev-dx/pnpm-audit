@@ -64,13 +64,13 @@ Build a Go CLI tool that, given a vulnerable transitive npm package and a fixed 
 - Create: `internal/graph/graph.go`
 - Create: `internal/graph/graph_test.go`
 
-- [ ] define `Node` (DepPath string, name+version fields, isRoot bool) and `Graph` structs
-- [ ] implement `Build(lf *lockfile.Lockfile, opts BuildOpts) *Graph` building forward edges (importer → snapshots → children) and reverse edges (child → parents)
-- [ ] index nodes by DepPath and by base `name@version` (for lookup ignoring peer suffix)
-- [ ] implement `FindVulnerable(g *Graph, pkg, version string) ([]*Node, error)` — returns all DepPath nodes matching `pkg@version`; returns typed error if pkg exists at other versions only
-- [ ] implement `PathsToRoot(g *Graph, start *Node, maxDepth int) [][]*Node` — reverse-BFS/DFS returning all simple paths from start node up to importers (cycle detection, maxDepth cap)
-- [ ] write tests: single parent, multi-parent, cycles, deeply nested (maxDepth truncation), no-path (isolated node), scoped name lookup
-- [ ] run `go test ./...` — must pass
+- [x] define `Node` (DepPath string, name+version fields, isRoot bool) and `Graph` structs
+- [x] implement `Build(lf *lockfile.Lockfile, opts BuildOpts) *Graph` building forward edges (importer → snapshots → children) and reverse edges (child → parents)
+- [x] index nodes by DepPath and by base `name@version` (for lookup ignoring peer suffix)
+- [x] implement `FindVulnerable(g *Graph, pkg, version string) ([]*Node, error)` — returns all DepPath nodes matching `pkg@version`; returns typed error if pkg exists at other versions only
+- [x] implement `PathsToRoot(g *Graph, start *Node, maxDepth int) [][]*Node` — reverse-BFS/DFS returning all simple paths from start node up to importers (cycle detection, maxDepth cap)
+- [x] write tests: single parent, multi-parent, cycles, deeply nested (maxDepth truncation), no-path (isolated node), scoped name lookup
+- [x] run `go test ./...` — must pass
 
 ### Task 4: Registry client + npmsemver wrapper
 
