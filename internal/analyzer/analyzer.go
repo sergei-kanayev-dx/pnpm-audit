@@ -317,8 +317,8 @@ func sortedVersionKeys(m map[string]*registry.PackageVersion) []string {
 // Specifier updates (IsSpecifier=true) are collected separately and appended after
 // version-bump entries so the FIX summary is self-sufficient.
 func computeMinUnion(chains []*ChainResult) []FixAction {
-	best := make(map[string]string)     // package → highest required version so far
-	bestSpec := make(map[string]string) // package → ToVer of highest required specifier
+	best := make(map[string]FixAction)    // package → action with highest required version so far
+	bestSpec := make(map[string]string)   // package → ToVer of highest required specifier
 	for _, cr := range chains {
 		for _, fa := range cr.Actions {
 			if fa.IsSpecifier {
@@ -336,20 +336,20 @@ func computeMinUnion(chains []*ChainResult) []FixAction {
 			}
 			cur, exists := best[fa.Package]
 			if !exists {
-				best[fa.Package] = fa.ToVer
+				best[fa.Package] = fa
 				continue
 			}
-			cv, err1 := semver.NewVersion(cur)
+			cv, err1 := semver.NewVersion(cur.ToVer)
 			nv, err2 := semver.NewVersion(fa.ToVer)
 			if err1 == nil && err2 == nil && nv.GreaterThan(cv) {
-				best[fa.Package] = fa.ToVer
+				best[fa.Package] = fa
 			}
 		}
 	}
 
 	result := make([]FixAction, 0, len(best)+len(bestSpec))
-	for pkg, ver := range best {
-		result = append(result, FixAction{Package: pkg, ToVer: ver})
+	for _, fa := range best {
+		result = append(result, fa)
 	}
 	for pkg, toVer := range bestSpec {
 		result = append(result, FixAction{Package: pkg, ToVer: toVer, IsSpecifier: true})

@@ -75,15 +75,17 @@ func (c *Client) buildOfflineMeta(pkg string) (*AbbrevMeta, error) {
 			version = version[:i]
 		}
 		pkgJSONPath := filepath.Join(pnpmDir, entry.Name(), "node_modules", pkg, "package.json")
-		f, err := os.Open(pkgJSONPath)
-		if err != nil {
-			continue
-		}
-		var pv PackageVersion
-		if decodeErr := json.NewDecoder(f).Decode(&pv); decodeErr == nil {
-			meta.Versions[version] = &pv
-		}
-		f.Close()
+		func() {
+			f, err := os.Open(pkgJSONPath)
+			if err != nil {
+				return
+			}
+			defer f.Close()
+			var pv PackageVersion
+			if decodeErr := json.NewDecoder(f).Decode(&pv); decodeErr == nil {
+				meta.Versions[version] = &pv
+			}
+		}()
 	}
 
 	if len(meta.Versions) == 0 {

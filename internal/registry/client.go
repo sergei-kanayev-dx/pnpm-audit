@@ -3,10 +3,13 @@ package registry
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
 )
+
+const maxRegistryResponseBytes = 50 * 1024 * 1024 // 50 MB
 
 // PackageVersion holds the per-version dependency metadata from npm abbreviated metadata.
 type PackageVersion struct {
@@ -84,7 +87,7 @@ func (c *Client) FetchAbbrevMeta(pkg string) (*AbbrevMeta, error) {
 	}
 
 	var meta AbbrevMeta
-	if err := json.NewDecoder(resp.Body).Decode(&meta); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxRegistryResponseBytes)).Decode(&meta); err != nil {
 		return nil, fmt.Errorf("decode registry response for %q: %w", pkg, err)
 	}
 
