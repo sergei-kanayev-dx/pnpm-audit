@@ -3,6 +3,7 @@ package analyzer
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/user/pnpm-vuln-fixer/internal/graph"
@@ -163,12 +164,25 @@ func AnalyzeChain(chain []*graph.Node, lf *lockfile.Lockfile, vulnPkg, fixedVers
 					)
 					return result, nil
 				}
-				admits, _ := npmsemver.Satisfies(newVer, de.Specifier)
+				// For alias entries (npm:pkgname@range) extract the bare
+				// semver range before checking.
+				checkSpecifier := de.Specifier
+				if de.IsAlias {
+					rest := de.Specifier[4:] // strip "npm:"
+					if idx := strings.LastIndex(rest, "@"); idx >= 0 {
+						checkSpecifier = rest[idx+1:]
+					}
+				}
+				admits, _ := npmsemver.Satisfies(newVer, checkSpecifier)
 				if !admits {
 					// Importer's specifier must also be widened.
+					toVer := "^" + newVer
+					if de.IsAlias {
+						toVer = "npm:" + de.AliasOf + "@^" + newVer
+					}
 					result.Actions = append(result.Actions, FixAction{
 						Package:     node.Name,
-						ToVer:       "^" + newVer,
+						ToVer:       toVer,
 						IsSpecifier: true,
 					})
 				}

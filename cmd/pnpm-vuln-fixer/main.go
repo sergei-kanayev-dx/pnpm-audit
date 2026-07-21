@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/user/pnpm-vuln-fixer/internal/analyzer"
@@ -129,17 +130,22 @@ func main() {
 	reg := registry.NewClient(*registryURL)
 	if *offline {
 		reg.Offline = true
+		reg.NodeModDir = filepath.Dir(*lockfilePath)
 	}
 
 	// Verify fixedVersion exists in registry before running analysis.
-	vulnMeta, err := reg.FetchAbbrevMeta(vulnName)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: cannot fetch metadata for %s: %v\n", vulnName, err)
-		os.Exit(1)
-	}
-	if _, exists := vulnMeta.Versions[fixedVersion]; !exists {
-		fmt.Fprintf(os.Stderr, "error: %s@%s is not published in the registry\n", vulnName, fixedVersion)
-		os.Exit(1)
+	// Skip this check in offline mode: the fixed version is the target and
+	// won't be installed locally yet, so the offline scan would always fail.
+	if !*offline {
+		vulnMeta, err := reg.FetchAbbrevMeta(vulnName)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: cannot fetch metadata for %s: %v\n", vulnName, err)
+			os.Exit(1)
+		}
+		if _, exists := vulnMeta.Versions[fixedVersion]; !exists {
+			fmt.Fprintf(os.Stderr, "error: %s@%s is not published in the registry\n", vulnName, fixedVersion)
+			os.Exit(1)
+		}
 	}
 
 	// Run the bottom-up fix analysis.

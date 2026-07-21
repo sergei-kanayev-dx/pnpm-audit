@@ -18,7 +18,7 @@ func PrintHuman(w io.Writer, r *analyzer.Report) {
 		fmt.Fprintf(w, "\nChain %d: %s\n", i+1, formatChain(cr.Chain))
 		switch cr.Verdict {
 		case analyzer.VerdictNoBumpNeeded:
-			fmt.Fprintf(w, "  already satisfied — re-run pnpm install to re-resolve\n")
+			fmt.Fprintf(w, "  already satisfied — run `pnpm update %s` to re-resolve\n", r.VulnPkg)
 			fixable++
 		case analyzer.VerdictDirectDep:
 			fmt.Fprintf(w, "  %s is a direct dependency — update specifier to %s\n", r.VulnPkg, r.FixedVer)
@@ -48,7 +48,7 @@ func PrintHuman(w io.Writer, r *analyzer.Report) {
 				fmt.Fprintf(w, "  - %s → %s\n", a.Package, a.ToVer)
 			}
 		} else {
-			fmt.Fprintf(w, "FIX: no package updates needed — re-run pnpm install (resolves %d/%d chains)\n", fixable, total)
+			fmt.Fprintf(w, "FIX: no package updates needed — run `pnpm update %s` (resolves %d/%d chains)\n", r.VulnPkg, fixable, total)
 		}
 	} else if fixable > 0 {
 		fmt.Fprintf(w, "PARTIAL FIX (%d/%d chains fixable):\n", fixable, total)

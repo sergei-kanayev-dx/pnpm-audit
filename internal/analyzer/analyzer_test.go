@@ -683,4 +683,11 @@ func TestAnalyzeChain_AliasDep(t *testing.T) {
 	if len(cr.Actions) == 0 || cr.Actions[0].Package != "express" {
 		t.Errorf("expected action for express, got %+v", cr.Actions)
 	}
+	// The alias specifier "npm:express@^4.16.0" admits newVer 4.17.1 (caret constraint),
+	// so no additional IsSpecifier action should be produced.
+	for _, a := range cr.Actions {
+		if a.IsSpecifier {
+			t.Errorf("unexpected IsSpecifier action for alias dep: %+v", a)
+		}
+	}
 }
