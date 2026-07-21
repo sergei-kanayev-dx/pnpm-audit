@@ -154,10 +154,10 @@ Build a Go CLI tool that, given a vulnerable transitive npm package and a fixed 
 
 ### Task 9: Verify acceptance criteria
 
-- [ ] run `go test ./...`
-- [ ] run `go vet ./...`
-- [ ] run `go build ./cmd/pnpm-vuln-fixer` and test binary against a real-world pnpm-lock.yaml v9 fixture
-- [ ] verify all 8 exit-code paths work correctly
+- [x] run `go test ./...`
+- [x] run `go vet ./...`
+- [x] run `go build ./cmd/pnpm-vuln-fixer` and test binary against a real-world pnpm-lock.yaml v9 fixture
+- [x] verify all 8 exit-code paths work correctly
 
 ### Task 10: Update documentation
 
