@@ -49,14 +49,14 @@ Build a Go CLI tool that, given a vulnerable transitive npm package and a fixed 
 - Create: `testdata/lockfiles/v9-peers.yaml`
 - Create: `testdata/lockfiles/v9-monorepo.yaml`
 
-- [ ] define `Lockfile`, `Importer`, `Snapshot`, `Package` structs in types.go covering importers, packages, snapshots sections of v9.0 format
-- [ ] implement `ParseV9(r io.Reader) (*Lockfile, error)` using gopkg.in/yaml.v3 decoder
-- [ ] parse importers: dependency/devDependency/optionalDependency groups, each entry has `specifier` and `version`
-- [ ] parse snapshots: keyed by DepPath (name@version with optional peer suffix), each has `dependencies` and `optionalDependencies` maps
-- [ ] implement `Parser` interface with `Parse(r io.Reader) (*Lockfile, error)` and factory `NewParser(version string) (Parser, error)`
-- [ ] create v9-simple, v9-scoped (with `@scope/name`), v9-peers (with peer suffix DepPaths), v9-monorepo (multiple importers) fixture files
-- [ ] write table-driven tests parsing each fixture, asserting importer roots, snapshot edges, DepPath keys
-- [ ] run `go test ./...` — must pass
+- [x] define `Lockfile`, `Importer`, `Snapshot`, `Package` structs in types.go covering importers, packages, snapshots sections of v9.0 format
+- [x] implement `ParseV9(r io.Reader) (*Lockfile, error)` using gopkg.in/yaml.v3 decoder
+- [x] parse importers: dependency/devDependency/optionalDependency groups, each entry has `specifier` and `version`
+- [x] parse snapshots: keyed by DepPath (name@version with optional peer suffix), each has `dependencies` and `optionalDependencies` maps
+- [x] implement `Parser` interface with `Parse(r io.Reader) (*Lockfile, error)` and factory `NewParser(version string) (Parser, error)`
+- [x] create v9-simple, v9-scoped (with `@scope/name`), v9-peers (with peer suffix DepPaths), v9-monorepo (multiple importers) fixture files
+- [x] write table-driven tests parsing each fixture, asserting importer roots, snapshot edges, DepPath keys
+- [x] run `go test ./...` — must pass
 
 ### Task 3: Forward + reverse graph and path-to-root enumeration
 
