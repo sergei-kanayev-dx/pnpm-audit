@@ -65,7 +65,7 @@ func TestPrintHuman_DirectDep(t *testing.T) {
 			{
 				Chain:   []*graph.Node{importerNode("."), pkgNode("lodash", "4.17.10")},
 				Verdict: analyzer.VerdictDirectDep,
-				Actions: []analyzer.FixAction{{Package: "lodash", ToVer: "4.17.21"}},
+				Actions: []analyzer.FixAction{{Package: "lodash", ToVer: "4.17.21", IsSpecifier: true}},
 			},
 		},
 	}

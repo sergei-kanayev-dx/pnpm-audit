@@ -116,7 +116,7 @@ func main() {
 		paths := graph.PathsToRoot(g, node, *maxDepth)
 		if !*allChains && len(paths) > 0 {
 			chains = append(chains, paths[0])
-			break
+			continue
 		}
 		chains = append(chains, paths...)
 	}

@@ -90,7 +90,7 @@ func AnalyzeChain(chain []*graph.Node, lf *lockfile.Lockfile, vulnPkg, fixedVers
 			}
 		}
 		result.Verdict = VerdictDirectDep
-		result.Actions = []FixAction{{Package: vulnPkg, ToVer: fixedVersion}}
+		result.Actions = []FixAction{{Package: vulnPkg, ToVer: fixedVersion, IsSpecifier: true}}
 		return result, nil
 	}
 
