@@ -115,12 +115,12 @@ Build a Go CLI tool that, given a vulnerable transitive npm package and a fixed 
 - Create: `internal/report/json.go`
 - Create: `internal/report/report_test.go`
 
-- [ ] implement `PrintHuman(w io.Writer, r *analyzer.Report)` producing per-chain output matching plan.md §7 format (vulnerable line, chain, per-edge annotation, FIX/OVERRIDE line)
-- [ ] implement `PrintJSON(w io.Writer, r *analyzer.Report) error` marshaling the report struct to JSON
-- [ ] include pnpm.overrides fallback in output when any chain has no ancestor fix
-- [ ] wire reporting into main.go (select human vs JSON via `--json` flag, write to stdout, set exit codes per plan.md §2)
-- [ ] write tests asserting human output format for each verdict type and JSON round-trip validity
-- [ ] run `go test ./...` — must pass
+- [x] implement `PrintHuman(w io.Writer, r *analyzer.Report)` producing per-chain output matching plan.md §7 format (vulnerable line, chain, per-edge annotation, FIX/OVERRIDE line)
+- [x] implement `PrintJSON(w io.Writer, r *analyzer.Report) error` marshaling the report struct to JSON
+- [x] include pnpm.overrides fallback in output when any chain has no ancestor fix
+- [x] wire reporting into main.go (select human vs JSON via `--json` flag, write to stdout, set exit codes per plan.md §2)
+- [x] write tests asserting human output format for each verdict type and JSON round-trip validity
+- [x] run `go test ./...` — must pass
 
 ### Task 7: Edge cases — scoped, peer suffixes, workspaces, aliases, offline
 

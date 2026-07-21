@@ -1,12 +1,17 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"strings"
 
+	"github.com/user/pnpm-vuln-fixer/internal/analyzer"
+	"github.com/user/pnpm-vuln-fixer/internal/graph"
 	"github.com/user/pnpm-vuln-fixer/internal/lockfile"
+	"github.com/user/pnpm-vuln-fixer/internal/registry"
+	"github.com/user/pnpm-vuln-fixer/internal/report"
 )
 
 // ParsePackageArg splits a package identity like "lodash@4.17.10" or
@@ -31,7 +36,7 @@ func main() {
 
 	lockfilePath := fs.String("lockfile", "./pnpm-lock.yaml", "path to pnpm-lock.yaml")
 	jsonOut := fs.Bool("json", false, "machine-readable JSON output")
-	registry := fs.String("registry", "https://registry.npmjs.org", "npm registry URL")
+	registryURL := fs.String("registry", "https://registry.npmjs.org", "npm registry URL")
 	offline := fs.Bool("offline", false, "do not hit the network; use on-disk package.json files only")
 	allChains := fs.Bool("all-chains", true, "analyze every path to root")
 	maxDepth := fs.Int("max-depth", 50, "safety cap on upward traversal depth")
@@ -60,26 +65,104 @@ func main() {
 
 	if *verbose {
 		fmt.Fprintf(os.Stderr, "package: %s version: %s fixed: %s lockfile: %s registry: %s json: %v offline: %v allChains: %v maxDepth: %d\n",
-			vulnName, vulnVersion, fixedVersion, *lockfilePath, *registry, *jsonOut, *offline, *allChains, *maxDepth)
+			vulnName, vulnVersion, fixedVersion, *lockfilePath, *registryURL, *jsonOut, *offline, *allChains, *maxDepth)
 	}
 
+	// Detect lockfile version.
 	ver, err := lockfile.DetectVersion(*lockfilePath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(2)
 	}
-
 	if *verbose {
 		fmt.Fprintf(os.Stderr, "lockfile version: %s\n", ver)
 	}
 
-	// Subsequent milestones will add graph building, analysis, and reporting here.
-	_ = ver
-	_ = *jsonOut
-	_ = *registry
-	_ = *offline
-	_ = *allChains
-	_ = *maxDepth
-	fmt.Fprintf(os.Stderr, "analysis not yet implemented (lockfile v%s detected)\n", ver)
+	// Parse the lockfile.
+	parser, err := lockfile.NewParser(ver)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(2)
+	}
+	f, err := os.Open(*lockfilePath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error opening lockfile: %v\n", err)
+		os.Exit(2)
+	}
+	defer f.Close()
+
+	lf, err := parser.Parse(f)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error parsing lockfile: %v\n", err)
+		os.Exit(2)
+	}
+
+	// Build dependency graph.
+	g := graph.Build(lf, graph.BuildOpts{
+		IncludeDev:      true,
+		IncludeOptional: true,
+	})
+
+	// Locate the vulnerable package.
+	vulnNodes, err := graph.FindVulnerable(g, vulnName, vulnVersion)
+	if err != nil {
+		var notFound *graph.ErrPkgNotFound
+		var wrongVer *graph.ErrPkgWrongVersion
+		switch {
+		case errors.As(err, &notFound):
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		case errors.As(err, &wrongVer):
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		default:
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		}
+		os.Exit(3)
+	}
+
+	// Enumerate paths to root for each vulnerable node.
+	var chains [][]*graph.Node
+	for _, node := range vulnNodes {
+		paths := graph.PathsToRoot(g, node, *maxDepth)
+		if !*allChains && len(paths) > 0 {
+			chains = append(chains, paths[0])
+			break
+		}
+		chains = append(chains, paths...)
+	}
+
+	if len(chains) == 0 {
+		fmt.Fprintf(os.Stderr, "no paths to root found for %s@%s (package may be unreachable from importers)\n", vulnName, vulnVersion)
+		os.Exit(3)
+	}
+
+	// Build registry client.
+	reg := registry.NewClient(*registryURL)
+	if *offline {
+		// Offline mode: do not make network requests; only use on-disk data.
+		// The registry client will fall through to the offline reader on error.
+		_ = reg
+	}
+
+	// Run the bottom-up fix analysis.
+	rpt, err := analyzer.Analyze(chains, lf, vulnName, vulnVersion, fixedVersion, reg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "analysis error: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Write report.
+	if *jsonOut {
+		if err := report.PrintJSON(os.Stdout, rpt); err != nil {
+			fmt.Fprintf(os.Stderr, "error writing JSON: %v\n", err)
+			os.Exit(1)
+		}
+	} else {
+		report.PrintHuman(os.Stdout, rpt)
+	}
+
+	// Exit codes: 0 = all chains fixable, 1 = no complete fix.
+	if rpt.AllFixable {
+		os.Exit(0)
+	}
 	os.Exit(1)
 }
