@@ -147,10 +147,10 @@ Build a Go CLI tool that, given a vulnerable transitive npm package and a fixed 
 - Create: `cmd/pnpm-vuln-fixer/main_test.go` (or `e2e_test.go`)
 - Create: `README.md`
 
-- [ ] write golden end-to-end tests in cmd/ that build the binary via `os/exec` (or use `testscript`) and run it against fixture lockfiles + mock registry, asserting stdout and exit code for: all-fixable, partial-fix, no-fix, exit-code-3 (pkg not present)
-- [ ] verify exit codes 0/1/2/3 are set correctly in all code paths in main.go
-- [ ] write README.md: installation, usage, flags, example output, output format description, limitations (v9 only, greedy algorithm, no re-verification)
-- [ ] run `go test ./...` — must pass
+- [x] write golden end-to-end tests in cmd/ that build the binary via `os/exec` (or use `testscript`) and run it against fixture lockfiles + mock registry, asserting stdout and exit code for: all-fixable, partial-fix, no-fix, exit-code-3 (pkg not present)
+- [x] verify exit codes 0/1/2/3 are set correctly in all code paths in main.go
+- [x] write README.md: installation, usage, flags, example output, output format description, limitations (v9 only, greedy algorithm, no re-verification)
+- [x] run `go test ./...` — must pass
 
 ### Task 9: Verify acceptance criteria
 

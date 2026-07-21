@@ -1,0 +1,42 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      parent-a:
+        specifier: ^1.0.0
+        version: 1.0.0
+
+  packages/app:
+    dependencies:
+      parent-b:
+        specifier: ^1.0.0
+        version: 1.0.0
+
+packages:
+
+  parent-a@1.0.0:
+    resolution: {integrity: sha512-fakeA==}
+
+  parent-b@1.0.0:
+    resolution: {integrity: sha512-fakeB==}
+
+  vuln@2.0.0:
+    resolution: {integrity: sha512-fakeV==}
+
+snapshots:
+
+  parent-a@1.0.0:
+    dependencies:
+      vuln: 2.0.0
+
+  parent-b@1.0.0:
+    dependencies:
+      vuln: 2.0.0
+
+  vuln@2.0.0: {}
