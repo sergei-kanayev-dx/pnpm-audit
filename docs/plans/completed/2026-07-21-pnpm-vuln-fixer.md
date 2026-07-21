@@ -161,6 +161,6 @@ Build a Go CLI tool that, given a vulnerable transitive npm package and a fixed 
 
 ### Task 10: Update documentation
 
-- [ ] update README.md if any behavior changed during testing
-- [ ] update CLAUDE.md if internal patterns were established
-- [ ] move this plan to `docs/plans/completed/`
+- [x] update README.md if any behavior changed during testing
+- [x] update CLAUDE.md if internal patterns were established
+- [x] move this plan to `docs/plans/completed/`

@@ -1,4 +1,4 @@
-# Plan: `pnpm-vuln-fixer` — a Go CLI that finds how to upgrade a transitive vulnerable package
+# Plan: `pnpm-vuln-fixer` a Go CLI that finds how to upgrade a transitive vulnerable package
 
 > Hand this file to Claude Code as the spec. It is deliberately prescriptive about the algorithm and data formats, and leaves idiomatic implementation choices to you. Build it in phases (see **Milestones**); each phase should compile, be tested, and be committed before moving on.
 
