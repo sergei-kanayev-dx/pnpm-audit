@@ -123,7 +123,7 @@ func main() {
 
 	if len(chains) == 0 {
 		fmt.Fprintf(os.Stderr, "no paths to root found for %s@%s (package may be unreachable from importers)\n", vulnName, vulnVersion)
-		os.Exit(3)
+		os.Exit(1)
 	}
 
 	// Build registry client.

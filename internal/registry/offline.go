@@ -70,6 +70,10 @@ func (c *Client) buildOfflineMeta(pkg string) (*AbbrevMeta, error) {
 			continue
 		}
 		version := entry.Name()[len(prefix):]
+		// Strip pnpm v9 peer-dependency suffix, e.g. "1.2.3(react@18)" → "1.2.3".
+		if i := strings.IndexByte(version, '('); i >= 0 {
+			version = version[:i]
+		}
 		pkgJSONPath := filepath.Join(pnpmDir, entry.Name(), "node_modules", pkg, "package.json")
 		f, err := os.Open(pkgJSONPath)
 		if err != nil {

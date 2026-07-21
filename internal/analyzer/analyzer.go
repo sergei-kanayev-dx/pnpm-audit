@@ -67,6 +67,28 @@ func AnalyzeChain(chain []*graph.Node, lf *lockfile.Lockfile, vulnPkg, fixedVers
 
 	// Direct-dep short-circuit: vuln is immediately under the importer.
 	if len(chain) == 2 {
+		if de := importerDepEntry(lf, chain[0].DepPath, vulnPkg); de != nil {
+			if de.IsLocal {
+				result.Verdict = VerdictDeadEnd
+				result.BlockedBy = vulnPkg
+				result.BlockReason = fmt.Sprintf(
+					"%s is a workspace/local package in %s; use pnpm.overrides instead",
+					vulnPkg, chain[0].DepPath,
+				)
+				return result, nil
+			}
+			checkSpecifier := de.Specifier
+			if de.IsAlias {
+				rest := de.Specifier[4:] // strip "npm:"
+				if idx := strings.LastIndex(rest, "@"); idx >= 0 {
+					checkSpecifier = rest[idx+1:]
+				}
+			}
+			if alreadyOK, _ := npmsemver.Satisfies(fixedVersion, checkSpecifier); alreadyOK {
+				result.Verdict = VerdictNoBumpNeeded
+				return result, nil
+			}
+		}
 		result.Verdict = VerdictDirectDep
 		result.Actions = []FixAction{{Package: vulnPkg, ToVer: fixedVersion}}
 		return result, nil

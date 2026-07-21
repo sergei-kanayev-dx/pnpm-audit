@@ -58,13 +58,14 @@ func pkgVersion(deps map[string]string) *registry.PackageVersion {
 //   "~4.16.0" → >=4.16.0 <4.17.0 (blocks 4.17.x)
 //   "^4.17.0" → >=4.17.0 <5.0.0  (admits 4.17.21)
 
-// TestAnalyzeChain_DirectDep: vuln is a direct dep of the importer.
+// TestAnalyzeChain_DirectDep: vuln is a direct dep; importer specifier blocks fixedVersion.
+// "~4.16.0" = >=4.16.0 <4.17.0, does not admit 4.17.21 → DirectDep verdict.
 func TestAnalyzeChain_DirectDep(t *testing.T) {
 	chain := []*graph.Node{
 		importerNode("."),
 		pkgNode("lodash", "4.17.10"),
 	}
-	lf := simpleLockfile(".", "lodash", "~4.17.10")
+	lf := simpleLockfile(".", "lodash", "~4.16.0")
 	reg := &mockRegistry{}
 
 	cr, err := analyzer.AnalyzeChain(chain, lf, "lodash", "4.17.21", reg)
@@ -79,6 +80,28 @@ func TestAnalyzeChain_DirectDep(t *testing.T) {
 	}
 	if cr.Actions[0].Package != "lodash" || cr.Actions[0].ToVer != "4.17.21" {
 		t.Errorf("action = %+v, want {lodash -> 4.17.21}", cr.Actions[0])
+	}
+}
+
+// TestAnalyzeChain_DirectDep_NoBumpNeeded: vuln is a direct dep; importer specifier
+// already admits fixedVersion ("~4.17.0" = >=4.17.0 <4.18.0 admits 4.17.21) → NoBumpNeeded.
+func TestAnalyzeChain_DirectDep_NoBumpNeeded(t *testing.T) {
+	chain := []*graph.Node{
+		importerNode("."),
+		pkgNode("lodash", "4.17.10"),
+	}
+	lf := simpleLockfile(".", "lodash", "~4.17.0")
+	reg := &mockRegistry{}
+
+	cr, err := analyzer.AnalyzeChain(chain, lf, "lodash", "4.17.21", reg)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cr.Verdict != analyzer.VerdictNoBumpNeeded {
+		t.Errorf("verdict = %v, want VerdictNoBumpNeeded", cr.Verdict)
+	}
+	if len(cr.Actions) != 0 {
+		t.Errorf("expected no actions, got %v", cr.Actions)
 	}
 }
 
