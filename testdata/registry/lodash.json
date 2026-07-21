@@ -1,0 +1,14 @@
+{
+  "name": "lodash",
+  "versions": {
+    "4.17.10": {
+      "dependencies": {}
+    },
+    "4.17.20": {
+      "dependencies": {}
+    },
+    "4.17.21": {
+      "dependencies": {}
+    }
+  }
+}

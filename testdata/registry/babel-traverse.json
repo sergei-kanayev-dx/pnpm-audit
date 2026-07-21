@@ -1,0 +1,15 @@
+{
+  "name": "@babel/traverse",
+  "versions": {
+    "7.22.0": {
+      "dependencies": {
+        "@babel/types": "^7.22.0"
+      }
+    },
+    "7.23.0": {
+      "dependencies": {
+        "@babel/types": "^7.23.0"
+      }
+    }
+  }
+}

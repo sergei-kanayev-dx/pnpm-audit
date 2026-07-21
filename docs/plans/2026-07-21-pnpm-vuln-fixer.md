@@ -82,15 +82,15 @@ Build a Go CLI tool that, given a vulnerable transitive npm package and a fixed 
 - Create: `internal/npmsemver/semver_test.go`
 - Create: `testdata/registry/` (canned JSON responses)
 
-- [ ] implement `internal/npmsemver.Satisfies(version, rangeStr string) (bool, error)` wrapping Masterminds/semver constraint check
-- [ ] implement `internal/npmsemver.MinVersionAbove(sorted []string, current string, predicate func(string) bool) (string, bool)` — smallest version > current where predicate holds
-- [ ] write semver tests: caret (`^0.2.3`, `^0.0.3`), tilde, exact, hyphen range, `||`, prerelease exclusion — match npm behavior per plan.md §3.3
-- [ ] implement `registry.Client` struct with `FetchAbbrevMeta(pkg string) (*AbbrevMeta, error)` using `net/http` and `Accept: application/vnd.npm.install-v1+json...` header
-- [ ] URL-encode scoped package names (replace `/` with `%2F` in path segment after `@scope`)
-- [ ] implement in-memory response cache keyed by package name
-- [ ] implement offline fallback: read `node_modules/.pnpm/<name>@<version>/node_modules/<name>/package.json`
-- [ ] write tests using `net/http/httptest` serving canned abbreviated metadata JSON from testdata/registry/; test scoped names, cache hit, 404 handling
-- [ ] run `go test ./...` — must pass
+- [x] implement `internal/npmsemver.Satisfies(version, rangeStr string) (bool, error)` wrapping Masterminds/semver constraint check
+- [x] implement `internal/npmsemver.MinVersionAbove(sorted []string, current string, predicate func(string) bool) (string, bool)` — smallest version > current where predicate holds
+- [x] write semver tests: caret (`^0.2.3`, `^0.0.3`), tilde, exact, hyphen range, `||`, prerelease exclusion — match npm behavior per plan.md §3.3
+- [x] implement `registry.Client` struct with `FetchAbbrevMeta(pkg string) (*AbbrevMeta, error)` using `net/http` and `Accept: application/vnd.npm.install-v1+json...` header
+- [x] URL-encode scoped package names (replace `/` with `%2F` in path segment after `@scope`)
+- [x] implement in-memory response cache keyed by package name
+- [x] implement offline fallback: read `node_modules/.pnpm/<name>@<version>/node_modules/<name>/package.json`
+- [x] write tests using `net/http/httptest` serving canned abbreviated metadata JSON from testdata/registry/; test scoped names, cache hit, 404 handling
+- [x] run `go test ./...` — must pass
 
 ### Task 5: Bottom-up fix algorithm
 
